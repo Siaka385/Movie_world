@@ -32,3 +32,11 @@ A comprehensive entertainment discovery platform where users can search for movi
 - 🔐 Secure **API key management** via environment variables
 - ⌨️ **Debounced** search input to reduce API requests
 
+## How TO run
+```bash
+cd movie-worl
+
+npm run dev
+
+```
+
