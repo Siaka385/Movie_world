@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Star, Plus, Check, Play, Calendar, Users, Filter, TrendingUp, Heart, X, AlertCircle } from 'lucide-react';
 import apiService from './services/apiService.js';
-import { getApiKeyErrorMessage, handleApiError } from './utils/apiHelpers.js';
+import { getApiKeyErrorMessage, handleApiError, scrollToTop } from './utils/apiHelpers.js';
+import Pagination from './components/Pagination.jsx';
+import LoadingSpinner from './components/LoadingSpinner.jsx';
 
 const EntertainmentPlatform = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,6 +19,18 @@ const EntertainmentPlatform = () => {
   const [genres, setGenres] = useState([]);
   const [error, setError] = useState(null);
   const [apiConfigured, setApiConfigured] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchPage, setSearchPage] = useState(1);
+  const [paginationInfo, setPaginationInfo] = useState({
+    page: 1,
+    totalPages: 1,
+    totalResults: 0
+  });
+  const [searchPaginationInfo, setSearchPaginationInfo] = useState({
+    page: 1,
+    totalPages: 1,
+    totalResults: 0
+  });
 
 
 
@@ -44,12 +58,17 @@ const EntertainmentPlatform = () => {
         }
 
         // Load initial data
-        const [trendingData, genresData] = await Promise.all([
-          apiService.getTrendingContent(),
+        const [trendingResponse, genresData] = await Promise.all([
+          apiService.getTrendingContent(currentPage),
           apiService.getGenres()
         ]);
 
-        setTrendingContent(trendingData);
+        setTrendingContent(trendingResponse.results);
+        setPaginationInfo({
+          page: trendingResponse.page,
+          totalPages: trendingResponse.totalPages,
+          totalResults: trendingResponse.totalResults
+        });
         setGenres([{ id: 'all', name: 'All' }, ...genresData]);
 
       } catch (err) {
@@ -61,7 +80,7 @@ const EntertainmentPlatform = () => {
     };
 
     initializeApp();
-  }, []);
+  }, [currentPage]);
 
   // Search with debouncing
   useEffect(() => {
@@ -69,22 +88,29 @@ const EntertainmentPlatform = () => {
       if (searchQuery.length > 0) {
         try {
           setIsLoading(true);
-          const results = await apiService.searchContent(searchQuery);
-          setSearchResults(results);
+          const searchResponse = await apiService.searchContent(searchQuery, searchPage);
+          setSearchResults(searchResponse.results);
+          setSearchPaginationInfo({
+            page: searchResponse.page,
+            totalPages: searchResponse.totalPages,
+            totalResults: searchResponse.totalResults
+          });
         } catch (err) {
           console.error('Search error:', err);
           setError(handleApiError(err, 'searching content'));
           setSearchResults([]);
+          setSearchPaginationInfo({ page: 1, totalPages: 1, totalResults: 0 });
         } finally {
           setIsLoading(false);
         }
       } else {
         setSearchResults([]);
+        setSearchPaginationInfo({ page: 1, totalPages: 1, totalResults: 0 });
       }
     }, 300);
 
     return () => clearTimeout(searchTimeout);
-  }, [searchQuery]);
+  }, [searchQuery, searchPage]);
 
   const filteredContent = trendingContent.filter(item => {
     const genreMatch = selectedGenre === 'all' || item.genre.some(g => {
@@ -112,6 +138,34 @@ const EntertainmentPlatform = () => {
       setWatchedList([...watchedList, item]);
       removeFromWatchlist(item.id);
     }
+  };
+
+  // Pagination handlers
+  const handlePageChange = async (page) => {
+    try {
+      setIsLoading(true);
+      setCurrentPage(page);
+
+      const trendingResponse = await apiService.getTrendingContent(page);
+      setTrendingContent(trendingResponse.results);
+      setPaginationInfo({
+        page: trendingResponse.page,
+        totalPages: trendingResponse.totalPages,
+        totalResults: trendingResponse.totalResults
+      });
+
+      scrollToTop();
+    } catch (err) {
+      console.error('Error changing page:', err);
+      setError(handleApiError(err, 'loading page'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearchPageChange = (page) => {
+    setSearchPage(page);
+    scrollToTop();
   };
 
   const getRecommendations = () => {
@@ -302,7 +356,7 @@ const EntertainmentPlatform = () => {
       <header className="bg-gray-800 shadow-lg sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-white">CinemaHub</h1>
+            <h1 className="text-2xl font-bold text-white">Movie WoRlD</h1>
 
             <div className="flex-1 max-w-2xl mx-8">
               <div className="relative">
@@ -373,14 +427,26 @@ const EntertainmentPlatform = () => {
             </h2>
             {isLoading ? (
               <div className="text-center py-8">
-                <div className="text-gray-400">Searching...</div>
+                <LoadingSpinner size="lg" />
+                <div className="text-gray-400 mt-4">Searching...</div>
               </div>
             ) : searchResults.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {searchResults.map((item) => (
-                  <ContentCard key={item.id} item={item} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {searchResults.map((item) => (
+                    <ContentCard key={item.id} item={item} />
+                  ))}
+                </div>
+
+                {/* Pagination for Search Results */}
+                <Pagination
+                  currentPage={searchPaginationInfo.page}
+                  totalPages={searchPaginationInfo.totalPages}
+                  totalResults={searchPaginationInfo.totalResults}
+                  onPageChange={handleSearchPageChange}
+                  className="mt-8"
+                />
+              </>
             ) : (
               <div className="text-center py-8">
                 <div className="text-gray-400">No results found</div>
@@ -432,11 +498,27 @@ const EntertainmentPlatform = () => {
                     <TrendingUp className="w-6 h-6 text-orange-500" />
                     <h2 className="text-2xl font-bold text-white">Trending Now</h2>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {filteredContent.map((item) => (
-                      <ContentCard key={item.id} item={item} />
-                    ))}
+                  <div className="relative">
+                    {isLoading && (
+                      <div className="absolute inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-10 rounded-lg">
+                        <LoadingSpinner size="lg" />
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                      {filteredContent.map((item) => (
+                        <ContentCard key={item.id} item={item} />
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Pagination for Trending Content */}
+                  <Pagination
+                    currentPage={paginationInfo.page}
+                    totalPages={paginationInfo.totalPages}
+                    totalResults={paginationInfo.totalResults}
+                    onPageChange={handlePageChange}
+                    className="mt-8"
+                  />
                 </section>
 
                 {/* Recommendations */}

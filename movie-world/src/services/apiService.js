@@ -11,8 +11,15 @@ class ApiService {
   // Get trending content with enhanced data
   async getTrendingContent(page = 1) {
     try {
-      const tmdbData = await this.tmdb.getTrending('day', page);
-      return await this.enhanceWithOMDBData(tmdbData);
+      const tmdbResponse = await this.tmdb.getTrending('day', page);
+      const enhancedResults = await this.enhanceWithOMDBData(tmdbResponse.results);
+
+      return {
+        results: enhancedResults,
+        page: tmdbResponse.page,
+        totalPages: tmdbResponse.totalPages,
+        totalResults: tmdbResponse.totalResults
+      };
     } catch (error) {
       console.error('Error fetching trending content:', error);
       throw error;
@@ -44,10 +51,22 @@ class ApiService {
   // Search content with enhanced data
   async searchContent(query, page = 1) {
     try {
-      if (!query.trim()) return [];
-      
-      const tmdbData = await this.tmdb.searchMulti(query, page);
-      return await this.enhanceWithOMDBData(tmdbData);
+      if (!query.trim()) return {
+        results: [],
+        page: 1,
+        totalPages: 0,
+        totalResults: 0
+      };
+
+      const tmdbResponse = await this.tmdb.searchMulti(query, page);
+      const enhancedResults = await this.enhanceWithOMDBData(tmdbResponse.results);
+
+      return {
+        results: enhancedResults,
+        page: tmdbResponse.page,
+        totalPages: tmdbResponse.totalPages,
+        totalResults: tmdbResponse.totalResults
+      };
     } catch (error) {
       console.error('Error searching content:', error);
       throw error;
@@ -58,7 +77,7 @@ class ApiService {
   async getContentDetails(id, type) {
     try {
       let tmdbData;
-      
+
       if (type === 'movie') {
         tmdbData = await this.tmdb.getMovieDetails(id);
       } else if (type === 'tv') {
@@ -152,10 +171,10 @@ class ApiService {
 
     // Process items in batches to avoid rate limiting
     const enhancedItems = [];
-    
+
     for (let i = 0; i < tmdbItems.length; i += maxConcurrent) {
       const batch = tmdbItems.slice(i, i + maxConcurrent);
-      
+
       const batchPromises = batch.map(async (item) => {
         try {
           // Try to get OMDB data by title and year
@@ -195,12 +214,12 @@ class ApiService {
       rated: omdbItem.rated,
       awards: omdbItem.awards,
       // Enhanced plot from OMDB if available and longer
-      plot: (omdbItem.plot && omdbItem.plot.length > tmdbItem.plot.length) 
-        ? omdbItem.plot 
+      plot: (omdbItem.plot && omdbItem.plot.length > tmdbItem.plot.length)
+        ? omdbItem.plot
         : tmdbItem.plot,
       // Enhanced cast from OMDB if TMDB cast is empty
-      cast: tmdbItem.cast && tmdbItem.cast.length > 0 
-        ? tmdbItem.cast 
+      cast: tmdbItem.cast && tmdbItem.cast.length > 0
+        ? tmdbItem.cast
         : omdbItem.actors || [],
       director: omdbItem.director || tmdbItem.director,
       writer: omdbItem.writer,
@@ -219,37 +238,37 @@ class ApiService {
       metacritic: omdbItem.ratings?.metacritic || null,
       metascore: omdbItem.metascore,
       imdbVotes: omdbItem.imdbVotes,
-      
+
       // Enhanced metadata
       imdbId: omdbItem.imdbId,
       rated: omdbItem.rated,
       awards: omdbItem.awards,
       language: omdbItem.language,
       country: omdbItem.country,
-      
+
       // Enhanced plot and cast
-      plot: (omdbItem.plot && omdbItem.plot.length > tmdbItem.plot.length) 
-        ? omdbItem.plot 
+      plot: (omdbItem.plot && omdbItem.plot.length > tmdbItem.plot.length)
+        ? omdbItem.plot
         : tmdbItem.plot,
-      cast: tmdbItem.cast && tmdbItem.cast.length > 0 
-        ? tmdbItem.cast 
+      cast: tmdbItem.cast && tmdbItem.cast.length > 0
+        ? tmdbItem.cast
         : omdbItem.actors || [],
-      
+
       // Enhanced crew information
       director: omdbItem.director || tmdbItem.director,
       writer: omdbItem.writer,
-      
+
       // Financial information
       boxOffice: omdbItem.boxOffice,
-      
+
       // Technical information
       runtime: omdbItem.runtime || tmdbItem.runtime,
       dvd: omdbItem.dvd,
       website: omdbItem.website,
-      
+
       // Production information
       production: omdbItem.production || tmdbItem.productionCompanies?.join(', '),
-      
+
       // TV specific
       totalSeasons: omdbItem.totalSeasons || tmdbItem.numberOfSeasons
     };
