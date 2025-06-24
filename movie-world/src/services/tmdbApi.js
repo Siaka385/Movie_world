@@ -6,7 +6,7 @@ class TMDBApi {
     this.baseURL = API_CONFIG.TMDB.BASE_URL;
     this.apiKey = API_CONFIG.TMDB.API_KEY;
     this.imageBaseURL = API_CONFIG.TMDB.IMAGE_BASE_URL;
-    
+
     // Create axios instance with default config
     this.api = axios.create({
       baseURL: this.baseURL,
@@ -29,7 +29,13 @@ class TMDBApi {
       const response = await this.api.get(API_CONFIG.TMDB.ENDPOINTS.TRENDING_ALL, {
         params: { page }
       });
-      return this.transformTrendingData(response.data.results);
+      console.log(timeWindow)
+      return {
+        results: this.transformTrendingData(response.data.results),
+        page: response.data.page,
+        totalPages: response.data.total_pages,
+        totalResults: response.data.total_results
+      };
     } catch (error) {
       console.error('Error fetching trending content:', error);
       throw new Error('Failed to fetch trending content');
@@ -42,7 +48,13 @@ class TMDBApi {
       const response = await this.api.get(API_CONFIG.TMDB.ENDPOINTS.TRENDING_MOVIES, {
         params: { page }
       });
-      return this.transformMovieData(response.data.results);
+      console.log(timeWindow)
+      return {
+        results: this.transformMovieData(response.data.results),
+        page: response.data.page,
+        totalPages: response.data.total_pages,
+        totalResults: response.data.total_results
+      };
     } catch (error) {
       console.error('Error fetching trending movies:', error);
       throw new Error('Failed to fetch trending movies');
@@ -55,6 +67,7 @@ class TMDBApi {
       const response = await this.api.get(API_CONFIG.TMDB.ENDPOINTS.TRENDING_TV, {
         params: { page }
       });
+      console.log(timeWindow)
       return this.transformTVData(response.data.results);
     } catch (error) {
       console.error('Error fetching trending TV shows:', error);
@@ -65,12 +78,22 @@ class TMDBApi {
   // Search for movies, TV shows, and people
   async searchMulti(query, page = 1) {
     try {
-      if (!query.trim()) return [];
-      
+      if (!query.trim()) return {
+        results: [],
+        page: 1,
+        totalPages: 0,
+        totalResults: 0
+      };
+
       const response = await this.api.get(API_CONFIG.TMDB.ENDPOINTS.SEARCH_MULTI, {
         params: { query, page }
       });
-      return this.transformSearchData(response.data.results);
+      return {
+        results: this.transformSearchData(response.data.results),
+        page: response.data.page,
+        totalPages: response.data.total_pages,
+        totalResults: response.data.total_results
+      };
     } catch (error) {
       console.error('Error searching content:', error);
       throw new Error('Failed to search content');
