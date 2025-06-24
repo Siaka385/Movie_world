@@ -29,6 +29,8 @@ class TMDBApi {
       const response = await this.api.get(API_CONFIG.TMDB.ENDPOINTS.TRENDING_ALL, {
         params: { page }
       });
+      console.log(response)
+      console.log(timeWindow)
       return this.transformTrendingData(response.data.results);
     } catch (error) {
       console.error('Error fetching trending content:', error);
@@ -42,6 +44,7 @@ class TMDBApi {
       const response = await this.api.get(API_CONFIG.TMDB.ENDPOINTS.TRENDING_MOVIES, {
         params: { page }
       });
+      console.log(timeWindow)
       return this.transformMovieData(response.data.results);
     } catch (error) {
       console.error('Error fetching trending movies:', error);
@@ -55,6 +58,7 @@ class TMDBApi {
       const response = await this.api.get(API_CONFIG.TMDB.ENDPOINTS.TRENDING_TV, {
         params: { page }
       });
+      console.log(timeWindow)
       return this.transformTVData(response.data.results);
     } catch (error) {
       console.error('Error fetching trending TV shows:', error);
