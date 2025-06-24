@@ -71,6 +71,7 @@ export const formatReleaseDate = (dateString) => {
       day: 'numeric'
     });
   } catch (error) {
+    console.log(error)
     return dateString;
   }
 };
