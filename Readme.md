@@ -19,8 +19,7 @@ A comprehensive entertainment discovery platform where users can search for movi
 - **APIs**: 
   - [TMDB API](https://www.themoviedb.org/documentation/api)
   - [OMDB API](https://www.omdbapi.com/)
-- **Data storage**: `localStorage`
-- **State management**: React Context or Redux (optional)
+- **State management**: React Context
 
 ## 📦 API Features & Handling
 
