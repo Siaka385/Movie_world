@@ -40,7 +40,7 @@ To run this project locally:
    ```bash
    git clone https://github.com/siaka385/movie-world.git
 
-   cd movie-world
+   cd Movie_world/movie-world
 
     ```
 
